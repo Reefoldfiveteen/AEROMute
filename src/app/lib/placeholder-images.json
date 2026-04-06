@@ -1,0 +1,35 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "app-spotify",
+      "description": "Spotify Icon",
+      "imageUrl": "https://picsum.photos/seed/spotify/100/100",
+      "imageHint": "music app icon"
+    },
+    {
+      "id": "app-youtube",
+      "description": "YouTube Icon",
+      "imageUrl": "https://picsum.photos/seed/youtube/100/100",
+      "imageHint": "video app icon"
+    },
+    {
+      "id": "app-netflix",
+      "description": "Netflix Icon",
+      "imageUrl": "https://picsum.photos/seed/netflix/100/100",
+      "imageHint": "streaming app icon"
+    },
+    {
+      "id": "app-games",
+      "description": "Mobile Game Icon",
+      "imageUrl": "https://picsum.photos/seed/game/100/100",
+      "imageHint": "game app icon"
+    },
+    {
+      "id": "app-podcasts",
+      "description": "Podcast Icon",
+      "imageUrl": "https://picsum.photos/seed/podcast/100/100",
+      "imageHint": "podcast app icon"
+    }
+  ]
+}

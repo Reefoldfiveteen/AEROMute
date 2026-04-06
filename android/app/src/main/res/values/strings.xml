@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AEROMute</string>
+    <string name="title_activity_main">AEROMute</string>
+    <string name="package_name">com.aeromute.app</string>
+    <string name="custom_url_scheme">com.aeromute.app</string>
+</resources>
