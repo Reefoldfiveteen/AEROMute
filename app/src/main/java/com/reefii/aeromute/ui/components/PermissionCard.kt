@@ -35,13 +35,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.reefii.aeromute.data.AppLanguage
+import com.reefii.aeromute.data.AppStrings
+
 @Composable
 fun PermissionCard(
     isOverlayGranted: Boolean,
     isDndGranted: Boolean,
     onRequestOverlay: () -> Unit,
-    onRequestDnd: () -> Unit
+    onRequestDnd: () -> Unit,
+    appLanguage: AppLanguage = AppLanguage.ENGLISH
 ) {
+    val strings = AppStrings.get(appLanguage)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -56,7 +62,7 @@ fun PermissionCard(
                 .padding(20.dp)
         ) {
             Text(
-                text = "IZIN AKSES SISTEM ANDROID",
+                text = strings.permHeader,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp,
@@ -66,22 +72,24 @@ fun PermissionCard(
 
             // Overlay Permission Row
             PermissionRowItem(
-                title = "Izin Tampilkan di Atas Aplikasi Lain (Overlay)",
-                description = "Diperlukan agar widget kontrol volume melayang dapat muncul di layar manapun.",
+                title = strings.permOverlayTitle,
+                description = strings.permOverlayDesc,
                 isGranted = isOverlayGranted,
                 icon = Icons.Rounded.Layers,
-                onRequest = onRequestOverlay
+                onRequest = onRequestOverlay,
+                strings = strings
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
             // DND Permission Row
             PermissionRowItem(
-                title = "Akses Jangan Ganggu / Mute Nada Dering (DND)",
-                description = "Diperlukan untuk mematikan nada dering & notifikasi pada Android versi baru.",
+                title = strings.permDndTitle,
+                description = strings.permDndDesc,
                 isGranted = isDndGranted,
                 icon = Icons.Rounded.NotificationsActive,
-                onRequest = onRequestDnd
+                onRequest = onRequestDnd,
+                strings = strings
             )
         }
     }
@@ -93,7 +101,8 @@ private fun PermissionRowItem(
     description: String,
     isGranted: Boolean,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onRequest: () -> Unit
+    onRequest: () -> Unit,
+    strings: AppStrings.Strings
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -146,7 +155,7 @@ private fun PermissionRowItem(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (isGranted) "IZIN AKTIF" else "BUTUH IZIN",
+                            text = if (isGranted) strings.permActive else strings.permNeeded,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isGranted) Color(0xFF10B981) else Color(0xFFF59E0B)
@@ -174,7 +183,7 @@ private fun PermissionRowItem(
                     modifier = Modifier.height(36.dp)
                 ) {
                     Text(
-                        text = "AKTIFKAN IZIN SEKARANG",
+                        text = strings.btnGrantPerm,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )

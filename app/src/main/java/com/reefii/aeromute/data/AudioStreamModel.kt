@@ -13,7 +13,15 @@ enum class AudioStreamType(
     RING(AudioManager.STREAM_RING, "Ring", "notifications"),
     NOTIFICATION(AudioManager.STREAM_NOTIFICATION, "Notification", "notifications_active"),
     ALARM(AudioManager.STREAM_ALARM, "Alarm", "alarm"),
-    CALL(AudioManager.STREAM_VOICE_CALL, "Telepon", "call")
+    CALL(AudioManager.STREAM_VOICE_CALL, "Telepon", "call");
+
+    fun getLocalizedTitle(strings: AppStrings.Strings): String = when (this) {
+        MEDIA -> strings.streamMedia
+        RING -> strings.streamRing
+        NOTIFICATION -> strings.streamNotification
+        ALARM -> strings.streamAlarm
+        CALL -> strings.streamCall
+    }
 }
 
 data class StreamVolumeInfo(

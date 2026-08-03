@@ -15,7 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
 import com.reefii.aeromute.data.AeroMutePreferences
+import com.reefii.aeromute.data.DarkModeOption
 import com.reefii.aeromute.service.FloatingMuteService
 import com.reefii.aeromute.ui.screens.AeroMuteMainScreen
 import com.reefii.aeromute.ui.theme.AeroMuteTheme
@@ -36,7 +39,14 @@ class MainActivity : ComponentActivity() {
         checkPermissions()
 
         setContent {
-            AeroMuteTheme {
+            val settings by preferences.settings.collectAsState()
+            val isDarkTheme = when (settings.darkModeOption) {
+                DarkModeOption.SYSTEM -> isSystemInDarkTheme()
+                DarkModeOption.DARK -> true
+                DarkModeOption.LIGHT -> false
+            }
+
+            AeroMuteTheme(darkTheme = isDarkTheme) {
                 // Re-check permissions whenever user comes back from Settings screen
                 LifecycleResumeEffect(Unit) {
                     checkPermissions()

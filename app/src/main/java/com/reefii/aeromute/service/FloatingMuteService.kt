@@ -977,8 +977,8 @@ class FloatingMuteService : Service(), LifecycleOwner, ViewModelStoreOwner, Save
                 )
 
                 // VERTICAL SLIDER VOLUME BAR
-                val trackHeightDp = 180.dp
-                val trackWidthDp = 40.dp
+                val trackHeightDp = 240.dp
+                val trackWidthDp = 42.dp
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

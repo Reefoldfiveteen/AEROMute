@@ -6,9 +6,38 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+enum class AppLanguage(val code: String, val displayName: String) {
+    ENGLISH("en", "English"),
+    INDONESIAN("id", "Bahasa Indonesia");
+
+    companion object {
+        fun fromCode(code: String): AppLanguage = values().find { it.code == code } ?: ENGLISH
+    }
+}
+
+enum class DarkModeOption(val code: String, val labelEn: String, val labelId: String) {
+    SYSTEM("system", "Follow System", "Ikut Sistem"),
+    DARK("dark", "Dark Mode", "Mode Gelap"),
+    LIGHT("light", "Light Mode", "Mode Terang");
+
+    companion object {
+        fun fromCode(code: String): DarkModeOption = values().find { it.code == code } ?: SYSTEM
+    }
+}
+
 enum class FloatingWidgetMode(val value: Int, val label: String, val description: String) {
-    STANDARD(1, "Standar", "Panel slider per-stream"),
-    SIMPLE(2, "Simpel", "Bar vertikal ringkas dengan mute & persen");
+    STANDARD(1, "Standard", "Per-stream slider panel"),
+    SIMPLE(2, "Simple", "Compact vertical bar with mute & %");
+
+    fun getLocalizedLabel(strings: AppStrings.Strings): String = when (this) {
+        STANDARD -> strings.modeStandardLabel
+        SIMPLE -> strings.modeSimpleLabel
+    }
+
+    fun getLocalizedDescription(strings: AppStrings.Strings): String = when (this) {
+        STANDARD -> strings.modeStandardDesc
+        SIMPLE -> strings.modeSimpleDesc
+    }
 
     companion object {
         fun fromValue(value: Int): FloatingWidgetMode = values().find { it.value == value } ?: STANDARD
@@ -16,9 +45,15 @@ enum class FloatingWidgetMode(val value: Int, val label: String, val description
 }
 
 enum class WidgetScale(val value: Int, val label: String, val sizeDp: Int) {
-    SMALL(1, "Ring / Kecil", 46),
-    MEDIUM(2, "Sedang", 58),
-    LARGE(3, "Besar", 70);
+    SMALL(1, "Small", 46),
+    MEDIUM(2, "Medium", 58),
+    LARGE(3, "Large", 70);
+
+    fun getLocalizedLabel(language: AppLanguage): String = when (this) {
+        SMALL -> if (language == AppLanguage.INDONESIAN) "Kecil" else "Small"
+        MEDIUM -> if (language == AppLanguage.INDONESIAN) "Sedang" else "Medium"
+        LARGE -> if (language == AppLanguage.INDONESIAN) "Besar" else "Large"
+    }
 
     companion object {
         fun fromValue(value: Int): WidgetScale = values().find { it.value == value } ?: MEDIUM
@@ -54,7 +89,9 @@ data class AeroMuteSettings(
     val savedY: Int = 300,
     val isLocked: Boolean = false,
     val vibrateOnMute: Boolean = true,
-    val snapToEdge: Boolean = true
+    val snapToEdge: Boolean = true,
+    val appLanguage: AppLanguage = AppLanguage.ENGLISH,
+    val darkModeOption: DarkModeOption = DarkModeOption.SYSTEM
 )
 
 class AeroMutePreferences(context: Context) {
@@ -82,7 +119,9 @@ class AeroMutePreferences(context: Context) {
             savedY = prefs.getInt(KEY_SAVED_Y, 300),
             isLocked = prefs.getBoolean(KEY_IS_LOCKED, false),
             vibrateOnMute = prefs.getBoolean(KEY_VIBRATE, true),
-            snapToEdge = prefs.getBoolean(KEY_SNAP_EDGE, true)
+            snapToEdge = prefs.getBoolean(KEY_SNAP_EDGE, true),
+            appLanguage = AppLanguage.fromCode(prefs.getString(KEY_APP_LANGUAGE, AppLanguage.ENGLISH.code) ?: AppLanguage.ENGLISH.code),
+            darkModeOption = DarkModeOption.fromCode(prefs.getString(KEY_DARK_MODE, DarkModeOption.SYSTEM.code) ?: DarkModeOption.SYSTEM.code)
         )
     }
 
@@ -166,6 +205,16 @@ class AeroMutePreferences(context: Context) {
         _settings.value = _settings.value.copy(snapToEdge = snap)
     }
 
+    fun updateLanguage(language: AppLanguage) {
+        prefs.edit().putString(KEY_APP_LANGUAGE, language.code).apply()
+        _settings.value = _settings.value.copy(appLanguage = language)
+    }
+
+    fun updateDarkMode(darkMode: DarkModeOption) {
+        prefs.edit().putString(KEY_DARK_MODE, darkMode.code).apply()
+        _settings.value = _settings.value.copy(darkModeOption = darkMode)
+    }
+
     companion object {
         private const val KEY_SERVICE_RUNNING = "service_running"
         private const val KEY_TRANSPARENCY = "transparency"
@@ -184,6 +233,8 @@ class AeroMutePreferences(context: Context) {
         private const val KEY_IS_LOCKED = "is_locked"
         private const val KEY_VIBRATE = "vibrate_on_mute"
         private const val KEY_SNAP_EDGE = "snap_to_edge"
+        private const val KEY_APP_LANGUAGE = "app_language"
+        private const val KEY_DARK_MODE = "dark_mode_option"
 
         @Volatile
         private var INSTANCE: AeroMutePreferences? = null

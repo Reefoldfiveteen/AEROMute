@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reefii.aeromute.data.AeroMuteSettings
+import com.reefii.aeromute.data.AppStrings
 
 @Composable
 fun FloatingWidgetPreview(
@@ -49,6 +50,7 @@ fun FloatingWidgetPreview(
     val alpha = settings.transparency
     val sizeDp = settings.widgetScale.sizeDp.dp
     val themePrimary = Color(settings.themePreset.primaryColorHex)
+    val strings = AppStrings.get(settings.appLanguage)
 
     Card(
         modifier = Modifier
@@ -65,7 +67,7 @@ fun FloatingWidgetPreview(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "PRATINJAU WIDGET MELAYANG",
+                text = strings.previewHeader,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp,
@@ -73,7 +75,7 @@ fun FloatingWidgetPreview(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Sesuaikan transparansi, ukuran & tema di bawah untuk melihat tampilan live",
+                text = strings.previewSub,
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -156,7 +158,7 @@ fun FloatingWidgetPreview(
 
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = if (isMutedPreview) "Status: MUTED (Ketuk badge untuk tes suara)" else "Status: SUARA AKTIF (Ketuk badge untuk tes mute)",
+                text = if (isMutedPreview) strings.previewStatusMuted else strings.previewStatusActive,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (isMutedPreview) Color(0xFFF43F5E) else MaterialTheme.colorScheme.primary

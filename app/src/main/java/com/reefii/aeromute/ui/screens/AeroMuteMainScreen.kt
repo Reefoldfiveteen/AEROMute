@@ -31,11 +31,13 @@ import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ColorLens
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DisplaySettings
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MusicNote
@@ -94,20 +96,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reefii.aeromute.data.AeroMutePreferences
 import com.reefii.aeromute.data.AeroThemePreset
+import com.reefii.aeromute.data.AppLanguage
+import com.reefii.aeromute.data.AppStrings
 import com.reefii.aeromute.data.AudioStreamManager
 import com.reefii.aeromute.data.AudioStreamType
+import com.reefii.aeromute.data.DarkModeOption
 import com.reefii.aeromute.data.WidgetScale
 import com.reefii.aeromute.ui.components.FloatingWidgetPreview
 import com.reefii.aeromute.ui.components.PermissionCard
 
 enum class MainNavTab(
-    val title: String,
-    val subtitle: String,
     val icon: ImageVector
 ) {
-    UTAMA("Utama", "Pengaturan Utama", Icons.Rounded.Home),
-    ADVANCED("Advanced", "Opsi Detail", Icons.Rounded.Tune),
-    GUIDE("Panduan", "Cara Penggunaan", Icons.Rounded.MenuBook)
+    UTAMA(Icons.Rounded.Home),
+    ADVANCED(Icons.Rounded.Tune),
+    GUIDE(Icons.Rounded.MenuBook);
+
+    fun getTitle(strings: AppStrings.Strings): String = when (this) {
+        UTAMA -> strings.tabHome
+        ADVANCED -> strings.tabAdvanced
+        GUIDE -> strings.tabGuide
+    }
+
+    fun getSubtitle(strings: AppStrings.Strings): String = when (this) {
+        UTAMA -> strings.tabHomeSub
+        ADVANCED -> strings.tabAdvancedSub
+        GUIDE -> strings.tabGuideSub
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -122,6 +137,7 @@ fun AeroMuteMainScreen(
 ) {
     val context = LocalContext.current
     val settings by preferences.settings.collectAsState()
+    val strings = remember(settings.appLanguage) { AppStrings.get(settings.appLanguage) }
     val audioStreamManager = remember { AudioStreamManager(context) }
     val backupVolumes = remember { mutableMapOf<AudioStreamType, Int>() }
 
@@ -137,34 +153,35 @@ fun AeroMuteMainScreen(
     val themePrimary = Color(settings.themePreset.primaryColorHex)
 
     Scaffold(
-        containerColor = Color(0xFFFEF7FF),
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar(
-                containerColor = Color(0xFFF3EDF7),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 tonalElevation = 8.dp
             ) {
                 MainNavTab.values().forEach { tab ->
                     val isSelected = selectedTab == tab
+                    val tabTitle = tab.getTitle(strings)
                     NavigationBarItem(
                         selected = isSelected,
                         onClick = { selectedTab = tab },
                         icon = {
                             Icon(
                                 imageVector = tab.icon,
-                                contentDescription = tab.title,
-                                tint = if (isSelected) Color(0xFF6750A4) else Color(0xFF49454F)
+                                contentDescription = tabTitle,
+                                tint = if (isSelected) themePrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         label = {
                             Text(
-                                text = tab.title,
+                                text = tabTitle,
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) Color(0xFF6750A4) else Color(0xFF49454F)
+                                color = if (isSelected) themePrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = Color(0xFFE8DEF8)
+                            indicatorColor = themePrimary.copy(alpha = 0.2f)
                         )
                     )
                 }
@@ -189,18 +206,18 @@ fun AeroMuteMainScreen(
                         text = "AEROMute",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1D1B20)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = selectedTab.subtitle,
+                        text = selectedTab.getSubtitle(strings),
                         fontSize = 12.sp,
-                        color = Color(0xFF49454F)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (settings.isServiceRunning) Color(0xFFE8DEF8) else Color(0xFFE7E0EC)
+                    color = if (settings.isServiceRunning) themePrimary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -214,16 +231,16 @@ fun AeroMuteMainScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (settings.isServiceRunning) "AKTIF" else "NONAKTIF",
+                            text = if (settings.isServiceRunning) strings.statusActive else strings.statusInactive,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (settings.isServiceRunning) Color(0xFF21005D) else Color(0xFF49454F)
+                            color = if (settings.isServiceRunning) themePrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
 
-            Divider(color = Color(0xFFE7E0EC))
+            Divider(color = MaterialTheme.colorScheme.surfaceVariant)
 
             // Main Tab View Content
             Box(
@@ -289,7 +306,9 @@ fun AeroMuteMainScreen(
                             onResetPosition = { preferences.savePosition(-1, 300) },
                             onVisibilityUpdate = { media, ring, notif, alarm, call ->
                                 preferences.updateStreamVisibility(media, ring, notif, alarm, call)
-                            }
+                            },
+                            onLanguageChange = { preferences.updateLanguage(it) },
+                            onDarkModeChange = { preferences.updateDarkMode(it) }
                         )
                     }
 
@@ -297,7 +316,8 @@ fun AeroMuteMainScreen(
                         UsageGuideView(
                             themePrimary = themePrimary,
                             isServiceRunning = settings.isServiceRunning,
-                            onToggleService = onToggleService
+                            onToggleService = onToggleService,
+                            appLanguage = settings.appLanguage
                         )
                     }
                 }
@@ -328,6 +348,8 @@ private fun MainSettingsView(
     onMuteAll: () -> Unit,
     onResetFifty: () -> Unit
 ) {
+    val strings = AppStrings.get(settings.appLanguage)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -340,7 +362,8 @@ private fun MainSettingsView(
             isServiceRunning = settings.isServiceRunning,
             themePrimary = themePrimary,
             isPermissionsGranted = isOverlayGranted && isDndGranted,
-            onToggleService = onToggleService
+            onToggleService = onToggleService,
+            appLanguage = settings.appLanguage
         )
 
         // Permission Card if permissions missing
@@ -349,7 +372,8 @@ private fun MainSettingsView(
                 isOverlayGranted = isOverlayGranted,
                 isDndGranted = isDndGranted,
                 onRequestOverlay = onRequestOverlay,
-                onRequestDnd = onRequestDnd
+                onRequestDnd = onRequestDnd,
+                appLanguage = settings.appLanguage
             )
         }
 
@@ -358,7 +382,7 @@ private fun MainSettingsView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3EDF7))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
             Column(
                 modifier = Modifier
@@ -372,10 +396,10 @@ private fun MainSettingsView(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "PRATINJAU WIDGET MELAYANG",
+                        text = strings.previewHeader,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF6750A4),
+                        color = themePrimary,
                         letterSpacing = 1.sp
                     )
 
@@ -384,7 +408,7 @@ private fun MainSettingsView(
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.height(30.dp)
                     ) {
-                        Text(text = "Edit Detail", fontSize = 10.sp)
+                        Text(text = strings.btnEditDetail, fontSize = 10.sp)
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Rounded.ArrowForward,
@@ -407,7 +431,7 @@ private fun MainSettingsView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -429,10 +453,10 @@ private fun MainSettingsView(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "KONTROL VOLUME HP",
+                            text = strings.volumeControlHeader,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1D1B20),
+                            color = MaterialTheme.colorScheme.onSurface,
                             letterSpacing = 1.sp
                         )
                     }
@@ -460,7 +484,7 @@ private fun MainSettingsView(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (isAllMuted) "UNMUTE SEMUA" else "MUTE SEMUA",
+                            text = if (isAllMuted) strings.btnUnmuteAll else strings.btnMuteAll,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
@@ -469,19 +493,19 @@ private fun MainSettingsView(
                     Button(
                         onClick = onResetFifty,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE8DEF8)),
+                        colors = ButtonDefaults.buttonColors(containerColor = themePrimary.copy(alpha = 0.2f)),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Text(
-                            text = "SET 50% SEMUA",
+                            text = strings.btnSet50All,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = Color(0xFF21005D)
+                            color = themePrimary
                         )
                     }
                 }
 
-                Divider(color = Color(0xFFE7E0EC))
+                Divider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                 // Stream sliders
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -509,7 +533,7 @@ private fun MainSettingsView(
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = if (stream.isMuted || stream.currentVolume == 0) Icons.Rounded.VolumeOff else icon,
-                                        contentDescription = stream.type.title,
+                                        contentDescription = stream.type.getLocalizedTitle(strings),
                                         tint = if (stream.isMuted || stream.currentVolume == 0) Color(0xFFF43F5E) else themePrimary,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -525,10 +549,10 @@ private fun MainSettingsView(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = stream.type.title,
+                                        text = stream.type.getLocalizedTitle(strings),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF1D1B20)
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "${stream.currentVolume} / ${stream.maxVolume} (${stream.percentage}%)",
@@ -561,7 +585,7 @@ private fun MainSettingsView(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
                 .clickable { onOpenGuide() },
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8DEF8))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Row(
                 modifier = Modifier
@@ -574,28 +598,28 @@ private fun MainSettingsView(
                     Icon(
                         imageVector = Icons.Rounded.HelpOutline,
                         contentDescription = null,
-                        tint = Color(0xFF21005D),
+                        tint = themePrimary,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Cara Penggunaan & Quick Tile",
+                            text = strings.guideTitle,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF21005D)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Buka panduan gestur dan pengaturan ubin notifikasi",
+                            text = strings.guideSub,
                             fontSize = 11.sp,
-                            color = Color(0xFF49454F)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
                 Icon(
                     imageVector = Icons.Rounded.ArrowForward,
                     contentDescription = null,
-                    tint = Color(0xFF21005D),
+                    tint = themePrimary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -625,8 +649,12 @@ private fun AdvancedSettingsView(
     onSnapToggle: () -> Unit,
     onVibrateToggle: () -> Unit,
     onResetPosition: () -> Unit,
-    onVisibilityUpdate: (Boolean, Boolean, Boolean, Boolean, Boolean) -> Unit
+    onVisibilityUpdate: (Boolean, Boolean, Boolean, Boolean, Boolean) -> Unit,
+    onLanguageChange: (AppLanguage) -> Unit,
+    onDarkModeChange: (DarkModeOption) -> Unit
 ) {
+    val strings = AppStrings.get(settings.appLanguage)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -634,12 +662,125 @@ private fun AdvancedSettingsView(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 0. Language & Dark Mode Settings Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Language Selection
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.Language,
+                        contentDescription = null,
+                        tint = themePrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = strings.languageHeader,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = 1.sp
+                    )
+                }
+
+                Text(
+                    text = strings.languageSub,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppLanguage.values().forEach { lang ->
+                        val isSelected = settings.appLanguage == lang
+                        OutlinedButton(
+                            onClick = { onLanguageChange(lang) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isSelected) themePrimary else Color.Transparent,
+                                contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text(
+                                text = lang.displayName,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+
+                // Dark Mode Selection
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.DarkMode,
+                        contentDescription = null,
+                        tint = themePrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = strings.darkModeHeader,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = 1.sp
+                    )
+                }
+
+                Text(
+                    text = strings.darkModeSub,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DarkModeOption.values().forEach { option ->
+                        val isSelected = settings.darkModeOption == option
+                        val label = if (settings.appLanguage == AppLanguage.ENGLISH) option.labelEn else option.labelId
+                        OutlinedButton(
+                            onClick = { onDarkModeChange(option) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (isSelected) themePrimary else Color.Transparent,
+                                contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 10.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
         // 1. Filter Stream Suara Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -656,33 +797,33 @@ private fun AdvancedSettingsView(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "FILTER STREAM SUARA",
+                        text = strings.filterStreamsHeader,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1D1B20),
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = 1.sp
                     )
                 }
 
                 Text(
-                    text = "Pilih saluran suara yang tampil di floating overlay:",
+                    text = strings.filterStreamsSub,
                     fontSize = 12.sp,
-                    color = Color(0xFF49454F)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                StreamCheckboxRow("🎵 Stream Media (Musik/Video/Game)", settings.showMediaStream) {
+                StreamCheckboxRow(strings.chkMedia, settings.showMediaStream, themePrimary) {
                     onVisibilityUpdate(it, settings.showRingStream, settings.showNotificationStream, settings.showAlarmStream, settings.showCallStream)
                 }
-                StreamCheckboxRow("🔔 Stream Nada Dering (Ring)", settings.showRingStream) {
+                StreamCheckboxRow(strings.chkRing, settings.showRingStream, themePrimary) {
                     onVisibilityUpdate(settings.showMediaStream, it, settings.showNotificationStream, settings.showAlarmStream, settings.showCallStream)
                 }
-                StreamCheckboxRow("📢 Stream Notifikasi", settings.showNotificationStream) {
+                StreamCheckboxRow(strings.chkNotif, settings.showNotificationStream, themePrimary) {
                     onVisibilityUpdate(settings.showMediaStream, settings.showRingStream, it, settings.showAlarmStream, settings.showCallStream)
                 }
-                StreamCheckboxRow("⏰ Stream Alarm", settings.showAlarmStream) {
+                StreamCheckboxRow(strings.chkAlarm, settings.showAlarmStream, themePrimary) {
                     onVisibilityUpdate(settings.showMediaStream, settings.showRingStream, settings.showNotificationStream, it, settings.showCallStream)
                 }
-                StreamCheckboxRow("📞 Stream Panggilan Telepon", settings.showCallStream) {
+                StreamCheckboxRow(strings.chkCall, settings.showCallStream, themePrimary) {
                     onVisibilityUpdate(settings.showMediaStream, settings.showRingStream, settings.showNotificationStream, settings.showAlarmStream, it)
                 }
             }
@@ -693,7 +834,7 @@ private fun AdvancedSettingsView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -710,18 +851,18 @@ private fun AdvancedSettingsView(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "MODE FLOATING WIDGET",
+                        text = strings.widgetModeHeader,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1D1B20),
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = 1.sp
                     )
                 }
 
                 Text(
-                    text = "Pilih gaya tampilan floating widget melayang:",
+                    text = strings.widgetModeSub,
                     fontSize = 12.sp,
-                    color = Color(0xFF49454F)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Row(
@@ -737,10 +878,10 @@ private fun AdvancedSettingsView(
                                 .clickable { onFloatingModeChange(mode) }
                                 .border(
                                     width = if (isSelected) 2.dp else 1.dp,
-                                    color = if (isSelected) themePrimary else Color(0xFFE7E0EC),
+                                    color = if (isSelected) themePrimary else MaterialTheme.colorScheme.surfaceVariant,
                                     shape = RoundedCornerShape(16.dp)
                                 ),
-                            color = if (isSelected) themePrimary.copy(alpha = 0.12f) else Color(0xFFFAFAFA)
+                            color = if (isSelected) themePrimary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
@@ -748,15 +889,15 @@ private fun AdvancedSettingsView(
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = mode.label,
+                                    text = mode.getLocalizedLabel(strings),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = if (isSelected) themePrimary else Color(0xFF1D1B20)
+                                    color = if (isSelected) themePrimary else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = mode.description,
+                                    text = mode.getLocalizedDescription(strings),
                                     fontSize = 10.sp,
-                                    color = Color(0xFF49454F),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
@@ -771,7 +912,7 @@ private fun AdvancedSettingsView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -788,15 +929,15 @@ private fun AdvancedSettingsView(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "TRANSPARANSI & UKURAN WIDGET",
+                        text = strings.opacityHeader,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1D1B20),
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = 1.sp
                     )
                 }
 
-                Divider(color = Color(0xFFE7E0EC))
+                Divider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                 // Transparansi Slider
                 Column {
@@ -806,10 +947,10 @@ private fun AdvancedSettingsView(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Tingkat Opacity / Transparansi",
+                            text = strings.opacityLabel,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1D1B20)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Surface(
@@ -841,10 +982,10 @@ private fun AdvancedSettingsView(
                 // Widget Scale
                 Column {
                     Text(
-                        text = "Ukuran Floating Bubble",
+                        text = strings.widgetScaleLabel,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1D1B20)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
@@ -859,11 +1000,11 @@ private fun AdvancedSettingsView(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) themePrimary else Color.Transparent,
-                                    contentColor = if (isSelected) Color.White else Color(0xFF1D1B20)
+                                    contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             ) {
                                 Text(
-                                    text = scale.label,
+                                    text = scale.getLocalizedLabel(settings.appLanguage),
                                     fontSize = 11.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
@@ -875,10 +1016,10 @@ private fun AdvancedSettingsView(
                 // Theme Presets
                 Column {
                     Text(
-                        text = "Tema Warna Widget",
+                        text = strings.colorThemeLabel,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1D1B20)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     FlowRow(
@@ -891,7 +1032,7 @@ private fun AdvancedSettingsView(
 
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (isSelected) presetColor else Color(0xFFF3EDF7),
+                                color = if (isSelected) presetColor else MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.clickable { onThemeChange(preset) }
                             ) {
                                 Row(
@@ -909,7 +1050,7 @@ private fun AdvancedSettingsView(
                                         text = preset.displayName,
                                         fontSize = 12.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.White else Color(0xFF1D1B20)
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
@@ -924,7 +1065,7 @@ private fun AdvancedSettingsView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -941,30 +1082,30 @@ private fun AdvancedSettingsView(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "PERILAKU & GESTUR ADVANCED",
+                        text = strings.behaviorHeader,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1D1B20),
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = 1.sp
                     )
                 }
 
-                Divider(color = Color(0xFFE7E0EC))
+                Divider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                 // Auto Collapse Timer
                 Column {
                     Text(
-                        text = "Timer Menyembunyikan Widget Otomatis",
+                        text = strings.behaviorAutoCollapse,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF1D1B20)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        val timerOptions = listOf(0 to "Matikan", 3 to "3s", 5 to "5s", 10 to "10s")
+                        val timerOptions = listOf(0 to strings.optionOff, 3 to "3s", 5 to "5s", 10 to "10s")
                         timerOptions.forEach { (sec, label) ->
                             val isSelected = settings.autoCollapseSeconds == sec
                             OutlinedButton(
@@ -973,7 +1114,7 @@ private fun AdvancedSettingsView(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = if (isSelected) themePrimary else Color.Transparent,
-                                    contentColor = if (isSelected) Color.White else Color(0xFF1D1B20)
+                                    contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             ) {
                                 Text(
@@ -996,14 +1137,14 @@ private fun AdvancedSettingsView(
                         Icon(
                             imageVector = Icons.Rounded.Room,
                             contentDescription = null,
-                            tint = Color(0xFF49454F),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Tempel Otomatis ke Pinggir Layar (Snap)",
+                            text = strings.behaviorSnapEdge,
                             fontSize = 13.sp,
-                            color = Color(0xFF1D1B20)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Switch(
@@ -1023,14 +1164,14 @@ private fun AdvancedSettingsView(
                         Icon(
                             imageVector = Icons.Rounded.Vibration,
                             contentDescription = null,
-                            tint = Color(0xFF49454F),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Umpan Balik Getar Saat Mute",
+                            text = strings.behaviorVibrate,
                             fontSize = 13.sp,
-                            color = Color(0xFF1D1B20)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Switch(
@@ -1052,7 +1193,7 @@ private fun AdvancedSettingsView(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Riset Posisi Overlay ke Posisi Awal",
+                        text = strings.btnResetPos,
                         fontSize = 12.sp
                     )
                 }
@@ -1064,7 +1205,8 @@ private fun AdvancedSettingsView(
             isOverlayGranted = isOverlayGranted,
             isDndGranted = isDndGranted,
             onRequestOverlay = onRequestOverlay,
-            onRequestDnd = onRequestDnd
+            onRequestDnd = onRequestDnd,
+            appLanguage = settings.appLanguage
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1078,8 +1220,11 @@ private fun AdvancedSettingsView(
 private fun UsageGuideView(
     themePrimary: Color,
     isServiceRunning: Boolean,
-    onToggleService: (Boolean) -> Unit
+    onToggleService: (Boolean) -> Unit,
+    appLanguage: AppLanguage = AppLanguage.ENGLISH
 ) {
+    val strings = AppStrings.get(appLanguage)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1092,7 +1237,7 @@ private fun UsageGuideView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF6750A4))
+            colors = CardDefaults.cardColors(containerColor = themePrimary)
         ) {
             Column(
                 modifier = Modifier
@@ -1105,7 +1250,7 @@ private fun UsageGuideView(
                     color = Color.White.copy(alpha = 0.2f)
                 ) {
                     Text(
-                        text = "PANDUAN LENGKAP",
+                        text = strings.guideTitle,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -1113,13 +1258,13 @@ private fun UsageGuideView(
                     )
                 }
                 Text(
-                    text = "Cara Menggunakan AEROMute",
+                    text = strings.guideSub,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
-                    text = "AEROMute dirancang agar Anda bisa mengontrol volume & membungkam suara HP secara instant tanpa mengganggu aktivitas game, video, atau aplikasi lain.",
+                    text = strings.guideWelcomeDesc,
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.9f)
                 )
@@ -1131,7 +1276,7 @@ private fun UsageGuideView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -1140,37 +1285,41 @@ private fun UsageGuideView(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "GESTUR KONTROL FLOATING WIDGET",
+                    text = strings.guideGesturesTitle,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF6750A4),
+                    color = themePrimary,
                     letterSpacing = 1.sp
                 )
 
-                Divider(color = Color(0xFFE7E0EC))
+                Divider(color = MaterialTheme.colorScheme.surfaceVariant)
 
                 GestureGuideRow(
                     icon = Icons.Rounded.TouchApp,
-                    title = "1. Seret & Geser Posisi",
-                    description = "Sentuh dan tahan gelembung melayang lalu geser ke bagian pinggir layar yang Anda sukai."
+                    title = strings.gesture1Title,
+                    description = strings.gesture1Desc,
+                    themePrimary = themePrimary
                 )
 
                 GestureGuideRow(
                     icon = Icons.Rounded.VolumeUp,
-                    title = "2. Ketuk 1x (Single Tap)",
-                    description = "Membuka panel ekspansi volume slider secara penuh untuk mengatur level suara masing-masing stream."
+                    title = strings.gesture2Title,
+                    description = strings.gesture2Desc,
+                    themePrimary = themePrimary
                 )
 
                 GestureGuideRow(
                     icon = Icons.Rounded.VolumeOff,
-                    title = "3. Ketuk 2x Cepat (Double-Tap)",
-                    description = "Fitur Mute Instan! Ketuk 2x pada bubble melayang untuk langsung membungkam/mengembalikan semua suara HP."
+                    title = strings.gesture3Title,
+                    description = strings.gesture3Desc,
+                    themePrimary = themePrimary
                 )
 
                 GestureGuideRow(
                     icon = Icons.Rounded.DisplaySettings,
-                    title = "4. Sembunyi Otomatis (Auto Collapse)",
-                    description = "Widget akan mengecil secara otomatis setelah beberapa detik sesuai timer agar tidak menutupi tampilan layar."
+                    title = strings.gesture4Title,
+                    description = strings.gesture4Desc,
+                    themePrimary = themePrimary
                 )
             }
         }
@@ -1180,7 +1329,7 @@ private fun UsageGuideView(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(24.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFF3EDF7))
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -1192,30 +1341,30 @@ private fun UsageGuideView(
                     Icon(
                         imageVector = Icons.Rounded.Layers,
                         contentDescription = null,
-                        tint = Color(0xFF6750A4),
+                        tint = themePrimary,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "UBIN PENGATURAN CEPAT (QS TILE)",
+                        text = strings.guideQuickTileTitle,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1D1B20),
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = 1.sp
                     )
                 }
 
                 Text(
-                    text = "Tambahkan Ubin AEROMute di Tirai Notifikasi Android Anda untuk mengontrol volume langsung dari mana saja:",
+                    text = strings.guideQuickTileDesc,
                     fontSize = 12.sp,
-                    color = Color(0xFF49454F)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TileStepItem("Langkah 1", "Tarik tirai notifikasi Android dari atas layar HP Anda.")
-                    TileStepItem("Langkah 2", "Ketuk ikon Pensil / Edit di ubin cepat Android.")
-                    TileStepItem("Langkah 3", "Cari ubin bernama 'AEROMute' lalu seret ke bagian atas.")
-                    TileStepItem("Langkah 4", "Ketuk ubin AEROMute 1x untuk mengaktifkan atau Mute suara instan!")
+                    TileStepItem(strings.tileStep1, strings.tileStep1Desc, themePrimary)
+                    TileStepItem(strings.tileStep2, strings.tileStep2Desc, themePrimary)
+                    TileStepItem(strings.tileStep3, strings.tileStep3Desc, themePrimary)
+                    TileStepItem(strings.tileStep4, strings.tileStep4Desc, themePrimary)
                 }
 
                 // Interactive Tile Preview
@@ -1224,7 +1373,7 @@ private fun UsageGuideView(
                         .fillMaxWidth()
                         .padding(top = 8.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Row(
                         modifier = Modifier
@@ -1236,14 +1385,14 @@ private fun UsageGuideView(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
                                 shape = CircleShape,
-                                color = if (isServiceRunning) Color(0xFF6750A4) else Color(0xFFE7E0EC),
+                                color = if (isServiceRunning) themePrimary else MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Rounded.VolumeOff,
                                         contentDescription = null,
-                                        tint = if (isServiceRunning) Color.White else Color(0xFF49454F),
+                                        tint = if (isServiceRunning) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -1254,12 +1403,12 @@ private fun UsageGuideView(
                                     text = "AEROMute Quick Tile",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1D1B20)
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = if (isServiceRunning) "Status: Aktif & Siap" else "Status: Nonaktif",
+                                    text = if (isServiceRunning) strings.tileStatusReady else strings.tileStatusInactive,
                                     fontSize = 11.sp,
-                                    color = Color(0xFF49454F)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -1267,13 +1416,13 @@ private fun UsageGuideView(
                         Button(
                             onClick = { onToggleService(!isServiceRunning) },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isServiceRunning) Color(0xFF10B981) else Color(0xFF6750A4)
+                                containerColor = if (isServiceRunning) Color(0xFF10B981) else themePrimary
                             ),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.height(34.dp)
                         ) {
                             Text(
-                                text = if (isServiceRunning) "Uji Tile: Mute" else "Uji Tile: Aktifkan",
+                                text = if (isServiceRunning) strings.tileTestMute else strings.tileTestActivate,
                                 fontSize = 11.sp
                             )
                         }
@@ -1293,7 +1442,8 @@ private fun UsageGuideView(
 private fun GestureGuideRow(
     icon: ImageVector,
     title: String,
-    description: String
+    description: String,
+    themePrimary: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1303,13 +1453,13 @@ private fun GestureGuideRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape),
-            color = Color(0xFFE8DEF8)
+            color = themePrimary.copy(alpha = 0.15f)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color(0xFF21005D),
+                    tint = themePrimary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -1322,30 +1472,34 @@ private fun GestureGuideRow(
                 text = title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1D1B20)
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = description,
                 fontSize = 12.sp,
-                color = Color(0xFF49454F)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun TileStepItem(step: String, text: String) {
+private fun TileStepItem(
+    step: String,
+    text: String,
+    themePrimary: Color = MaterialTheme.colorScheme.primary
+) {
     Row(verticalAlignment = Alignment.Top) {
         Surface(
             shape = RoundedCornerShape(6.dp),
-            color = Color(0xFFE8DEF8)
+            color = themePrimary.copy(alpha = 0.15f)
         ) {
             Text(
                 text = step,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF21005D),
+                color = themePrimary,
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
             )
         }
@@ -1353,7 +1507,7 @@ private fun TileStepItem(step: String, text: String) {
         Text(
             text = text,
             fontSize = 12.sp,
-            color = Color(0xFF1D1B20)
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -1363,8 +1517,11 @@ private fun HeroMasterBanner(
     isServiceRunning: Boolean,
     themePrimary: Color,
     isPermissionsGranted: Boolean,
-    onToggleService: (Boolean) -> Unit
+    onToggleService: (Boolean) -> Unit,
+    appLanguage: AppLanguage = AppLanguage.ENGLISH
 ) {
+    val strings = AppStrings.get(appLanguage)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1415,7 +1572,7 @@ private fun HeroMasterBanner(
                             color = Color.White
                         )
                         Text(
-                            text = if (isServiceRunning) "Widget melayang aktif & siap digunakan" else "Aktifkan sakelar untuk memunculkan widget melayang",
+                            text = if (isServiceRunning) strings.heroActiveDesc else strings.heroInactiveDesc,
                             fontSize = 13.sp,
                             color = Color.White.copy(alpha = 0.85f)
                         )
@@ -1448,12 +1605,12 @@ private fun HeroMasterBanner(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     StatusChip(
-                        label = if (isServiceRunning) "SERVICE AKTIF" else "SERVICE NONAKTIF",
+                        label = if (isServiceRunning) strings.statusServiceActive else strings.statusServiceInactive,
                         isSuccess = isServiceRunning,
                         modifier = Modifier.weight(1f)
                     )
                     StatusChip(
-                        label = if (isPermissionsGranted) "IZIN LENGKAP" else "BUTUH IZIN",
+                        label = if (isPermissionsGranted) strings.statusPermGranted else strings.statusPermNeeded,
                         isSuccess = isPermissionsGranted,
                         modifier = Modifier.weight(1f)
                     )
@@ -1500,6 +1657,7 @@ private fun StatusChip(
 private fun StreamCheckboxRow(
     label: String,
     checked: Boolean,
+    themePrimary: Color = MaterialTheme.colorScheme.primary,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
@@ -1511,13 +1669,13 @@ private fun StreamCheckboxRow(
         Checkbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = CheckboxDefaults.colors(checkedColor = Color(0xFF6750A4))
+            colors = CheckboxDefaults.colors(checkedColor = themePrimary)
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = label,
             fontSize = 12.sp,
-            color = Color(0xFF1D1B20)
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
